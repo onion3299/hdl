@@ -121,6 +121,7 @@ wire last_bit;
 wire first_bit;
 reg last_transfer;
 reg [7:0] word_length = DATA_WIDTH;
+reg [7:0] left_aligned = 8'b0;
 wire end_of_word;
 
 reg [7:0] sdi_counter = 8'b0;
@@ -187,6 +188,7 @@ always @(posedge clk) begin
                 three_wire <= DEFAULT_SPI_CFG[2];
                 clk_div <= DEFAULT_CLK_DIV;
                 word_length <= DATA_WIDTH;
+                left_aligned <= 8'b0;
         end else if (exec_write_cmd == 1'b1) begin
                  if (cmd[9:8] == REG_CONFIG) begin
                         cpha <= cmd[0];
@@ -197,6 +199,7 @@ always @(posedge clk) begin
                 end else if (cmd[9:8] == REG_WORD_LENGTH) begin
                         // the max value of this reg must be DATA_WIDTH
                         word_length <= cmd[7:0];
+                        left_aligned <= DATA_WIDTH - cmd[7:0];
                 end
         end
 end
@@ -355,10 +358,12 @@ always @(posedge clk) begin
         end
 end
 
+// Load the SDO parallel data into the SDO shift register. In case of a custom
+// data width, additional bit shifting must done at load.
 always @(posedge clk) begin
         if (transfer_active == 1'b1 && trigger_tx == 1'b1) begin
                 if (first_bit == 1'b1)
-                  data_sdo_shift <= sdo_data;
+                  data_sdo_shift <= sdo_data << left_aligned;
                 else
                   data_sdo_shift <= {data_sdo_shift[(DATA_WIDTH-2):0], 1'b0};
         end
