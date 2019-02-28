@@ -338,7 +338,8 @@ localparam BYTES_PER_BURST_WIDTH =
 // 0 - Master (MM writer) ; 1 - Slave (MM reader)
 localparam FRAME_LOCK_MODE = DMA_TYPE_SRC == 0 && DMA_TYPE_DEST != 0;
 
-localparam MAX_NUM_FRAMES_WIDTH = MAX_NUM_FRAMES > 8 ? 4 :
+localparam MAX_NUM_FRAMES_WIDTH = MAX_NUM_FRAMES > 16 ? 5 :
+                                  MAX_NUM_FRAMES > 8 ? 4 :
                                   MAX_NUM_FRAMES > 4 ? 3 :
                                   MAX_NUM_FRAMES > 2 ? 2 :
                                   MAX_NUM_FRAMES > 1 ? 1 : 0;
