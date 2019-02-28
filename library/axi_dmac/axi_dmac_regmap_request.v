@@ -108,12 +108,12 @@ module axi_dmac_regmap_request #(
 
 localparam MEASURED_LENGTH_WIDTH = (DMA_2D_TRANSFER == 1) ? 32 : DMA_LENGTH_WIDTH;
 
-localparam DMAC_DEF_SRC_ADDR_LOC = (HAS_AUTORUN == 0) ? 'h00 : 
+localparam DMAC_DEF_SRC_ADDR_LOC = (HAS_AUTORUN == 0) ? 'h00 :
     DMAC_DEF_SRC_ADDR[DMA_AXI_ADDR_WIDTH-1:BYTES_PER_BEAT_WIDTH_SRC];
-localparam DMAC_DEF_DEST_ADDR_LOC = (HAS_AUTORUN == 0) ? 'h00 : 
+localparam DMAC_DEF_DEST_ADDR_LOC = (HAS_AUTORUN == 0) ? 'h00 :
     DMAC_DEF_DEST_ADDR[DMA_AXI_ADDR_WIDTH-1:BYTES_PER_BEAT_WIDTH_DEST];
-localparam DMAC_DEF_X_LENGTH_LOC = (HAS_AUTORUN == 0) ? 'h00 : 
-    DMAC_DEF_X_LENGTH[DMA_LENGTH_WIDTH-1:DMA_LENGTH_ALIGN]; 
+localparam DMAC_DEF_X_LENGTH_LOC = (HAS_AUTORUN == 0) ? 'h00 :
+    DMAC_DEF_X_LENGTH[DMA_LENGTH_WIDTH-1:DMA_LENGTH_ALIGN];
 
 localparam DMAC_DEF_FLAGS_CYCLIC = (HAS_AUTORUN == 0) ? DMA_CYCLIC :
     DMAC_DEF_FLAGS[0];
@@ -223,12 +223,12 @@ end
 
 generate
 if (DMA_2D_TRANSFER == 1) begin
-  localparam DMAC_DEF_Y_LENGTH_LOC = (HAS_AUTORUN == 0) ? 'h00 : 
-    DMAC_DEF_Y_LENGTH; 
-  localparam DMAC_DEF_SRC_STRIDE_LOC = (HAS_AUTORUN == 0) ? 'h00 : 
-    DMAC_DEF_SRC_STRIDE[DMA_LENGTH_WIDTH-1:BYTES_PER_BEAT_WIDTH_SRC]; 
-  localparam DMAC_DEF_DEST_STRIDE_LOC = (HAS_AUTORUN == 0) ? 'h00 : 
-    DMAC_DEF_DEST_STRIDE[DMA_LENGTH_WIDTH-1:BYTES_PER_BEAT_WIDTH_DEST]; 
+  localparam DMAC_DEF_Y_LENGTH_LOC = (HAS_AUTORUN == 0) ? 'h00 :
+    DMAC_DEF_Y_LENGTH;
+  localparam DMAC_DEF_SRC_STRIDE_LOC = (HAS_AUTORUN == 0) ? 'h00 :
+    DMAC_DEF_SRC_STRIDE[DMA_LENGTH_WIDTH-1:BYTES_PER_BEAT_WIDTH_SRC];
+  localparam DMAC_DEF_DEST_STRIDE_LOC = (HAS_AUTORUN == 0) ? 'h00 :
+    DMAC_DEF_DEST_STRIDE[DMA_LENGTH_WIDTH-1:BYTES_PER_BEAT_WIDTH_DEST];
 
   reg [DMA_LENGTH_WIDTH-1:0] up_dma_y_length = DMAC_DEF_Y_LENGTH_LOC;
   reg [DMA_LENGTH_WIDTH-1:0] up_dma_src_stride = DMAC_DEF_SRC_STRIDE_LOC;
@@ -258,11 +258,11 @@ end
 
 if (ENABLE_FRAME_LOCK == 1) begin
   localparam DMAC_DEF_FLOCK_CFG_FNUM = (HAS_AUTORUN == 0) ? 'h00 :
-    DMAC_DEF_FLOCK_CFG[MAX_NUM_FRAMES_WIDTH:0]; 
+    DMAC_DEF_FLOCK_CFG[MAX_NUM_FRAMES_WIDTH:0];
   localparam DMAC_DEF_FLOCK_CFG_DIST = (HAS_AUTORUN == 0) ? 'h00 :
-    DMAC_DEF_FLOCK_CFG[16 +: (MAX_NUM_FRAMES_WIDTH+1)]; 
+    DMAC_DEF_FLOCK_CFG[16 +: (MAX_NUM_FRAMES_WIDTH+1)];
   localparam DMAC_DEF_FLOCK_STRIDE_LOC = (HAS_AUTORUN == 0) ? 'h00 :
-    DMAC_DEF_FLOCK_STRIDE; 
+    DMAC_DEF_FLOCK_STRIDE;
 
   reg [MAX_NUM_FRAMES_WIDTH:0] up_dma_flock_framenum = DMAC_DEF_FLOCK_CFG_FNUM;
   reg [MAX_NUM_FRAMES_WIDTH:0] up_dma_flock_distance = DMAC_DEF_FLOCK_CFG_DIST;
@@ -341,8 +341,7 @@ always @(posedge clk) begin
   end
 end
 
-always @(posedge clk)
-begin
+always @(posedge clk) begin
   if (ctrl_enable == 1'b0) begin
     up_measured_transfer_length <= 'h0;
   end else if (response_valid == 1'b1 && response_ready == 1'b1) begin
@@ -358,8 +357,7 @@ always @(posedge clk) begin
   end
 end
 
-always @(posedge clk)
-begin
+always @(posedge clk) begin
   if (ctrl_enable == 1'b0) begin
     response_ready <= 1'b1;
   end else if (response_ready == 1'b1) begin
@@ -369,8 +367,7 @@ begin
   end
 end
 
-always @(posedge clk)
-begin
+always @(posedge clk) begin
   if (response_valid == 1'b1 && response_ready == 1'b1) begin
     up_tlf_s_valid <= up_bl_partial;
     up_clear_tl <= response_eot;
