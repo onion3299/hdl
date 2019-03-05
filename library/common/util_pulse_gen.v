@@ -42,8 +42,11 @@ module util_pulse_gen #(
   input               clk,
   input               rstn,
 
+  input       [31:0]  pulse_width,
+  input               pulse_width_en,
   input       [31:0]  pulse_period,
   input               pulse_period_en,
+
 
   output  reg         pulse
 );
@@ -52,14 +55,28 @@ module util_pulse_gen #(
 
   reg     [(PULSE_WIDTH-1):0]  pulse_width_cnt = {PULSE_WIDTH{1'b1}};
   reg     [31:0]               pulse_period_cnt = 32'h0;
+  reg     [31:0]               pulse_period_read = 32'b0;
+  reg     [31:0]               pulse_width_read = 32'b0;
   reg     [31:0]               pulse_period_d = 32'b0;
+  reg     [31:0]               pulse_width_d = 32'b0;
 
   wire                         end_of_period_s;
 
   // flop the desired period
 
   always @(posedge clk) begin
-    pulse_period_d <= (pulse_period_en) ? pulse_period : PULSE_PERIOD;
+    if (rstn == 1'b0) begin
+      pulse_period_d <= PULSE_PERIOD;
+      pulse_width_d <= PULSE_WIDTH;
+    end else begin
+      pulse_period_read <= (pulse_period_en) ? pulse_period : PULSE_PERIOD;
+      pulse_width_read <= (pulse_width_en) ? pulse_width : PULSE_WIDTH;
+
+      if (pulse_period_cnt == pulse_period_d) begin
+        pulse_period_d <= pulse_period_read;
+        pulse_width_d <= pulse_width_read;
+      end
+    end
   end
 
   // a free running pulse generator
@@ -68,25 +85,24 @@ module util_pulse_gen #(
     if (rstn == 1'b0) begin
       pulse_period_cnt <= 32'h0;
     end else begin
-      pulse_period_cnt <= (pulse_period_cnt == pulse_period_d) ? 32'b0 : (pulse_period_cnt + 1);
+      pulse_period_cnt <= (pulse_period_cnt == pulse_period_d) ? 32'b0 : (pulse_period_cnt + 1'b1);
     end
   end
 
-  assign  end_of_period_s = (pulse_period_cnt == pulse_period_d) ? 1'b1 : 1'b0;
+  assign end_of_period_s = (pulse_period_cnt == pulse_period_d) ? 1'b1 : 1'b0;
 
   // generate pulse with a specified width
 
-  always @(posedge clk) begin
+  always @ (posedge clk) begin
     if (rstn == 1'b0) begin
-      pulse_width_cnt <= 0;
-      pulse <= 0;
+      pulse <= 1'b0;
+    end else if (pulse_period_cnt == 32'd0) begin
+      // assert pulse, NOTE: no pulse for 0 width or 0 period
+      pulse <= (|pulse_width_d) & (|pulse_period_d);
+    end else if (pulse_period_cnt == pulse_width_d) begin
+      pulse <= 1'b0;
     end else begin
-      pulse_width_cnt <= (pulse == 1'b1) ? pulse_width_cnt + 1 : {PULSE_WIDTH{1'h0}};
-      if(end_of_period_s == 1'b1) begin
-        pulse <= 1'b1;
-      end else if(pulse_width_cnt == {PULSE_WIDTH{1'b1}}) begin
-        pulse <= 1'b0;
-      end
+      pulse <= pulse;
     end
   end
 
