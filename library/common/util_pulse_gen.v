@@ -43,10 +43,8 @@ module util_pulse_gen #(
   input               rstn,
 
   input       [31:0]  pulse_width,
-  input               pulse_width_en,
   input       [31:0]  pulse_period,
-  input               pulse_period_en,
-
+  input               load_config,
 
   output  reg         pulse
 );
@@ -68,11 +66,16 @@ module util_pulse_gen #(
     if (rstn == 1'b0) begin
       pulse_period_d <= PULSE_PERIOD;
       pulse_width_d <= PULSE_WIDTH;
+      pulse_period_read <= PULSE_PERIOD;
+      pulse_width_read <= PULSE_WIDTH;
     end else begin
-      pulse_period_read <= (pulse_period_en) ? pulse_period : PULSE_PERIOD;
-      pulse_width_read <= (pulse_width_en) ? pulse_width : PULSE_WIDTH;
-
-      if (pulse_period_cnt == pulse_period_d) begin
+      // latch the input period/width values
+      if (load_config) begin
+        pulse_period_read <= pulse_period;
+        pulse_width_read <= pulse_width;
+      end
+      // update the current period/width at the end of the period
+      if (end_of_period_s) begin
         pulse_period_d <= pulse_period_read;
         pulse_width_d <= pulse_width_read;
       end
@@ -85,11 +88,11 @@ module util_pulse_gen #(
     if (rstn == 1'b0) begin
       pulse_period_cnt <= 32'h0;
     end else begin
-      pulse_period_cnt <= (pulse_period_cnt == pulse_period_d) ? 32'b0 : (pulse_period_cnt + 1'b1);
+      pulse_period_cnt <= (end_of_period_s) ? 32'b0 : (pulse_period_cnt + 1'b1);
     end
   end
-
   assign end_of_period_s = (pulse_period_cnt == pulse_period_d) ? 1'b1 : 1'b0;
+
 
   // generate pulse with a specified width
 

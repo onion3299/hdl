@@ -73,6 +73,7 @@ module axi_pulse_gen #(
   reg             up_rack = 'd0;
   reg     [31:0]  up_pulse_width = 'd0;
   reg     [31:0]  up_pulse_period = 'd0;
+  reg             up_load_config = 1'b0;
   reg             up_resetn;
 
   // internal signals
@@ -87,6 +88,7 @@ module axi_pulse_gen #(
   wire    [31:0]  up_wdata_s;
   wire    [31:0]  pulse_width_s;
   wire    [31:0]  pulse_period_s;
+  wire            load_config_s;
   wire            resetn_pulse_gen;
 
   assign up_clk = s_axi_aclk;
@@ -97,11 +99,15 @@ module axi_pulse_gen #(
       up_wack <= 'd0;
       up_pulse_period <= 'd0;
       up_pulse_width <= 'd0;
+      up_load_config <= 1'b0;
       up_resetn <= 1'b1;
     end else begin
       up_wack <= up_wreq_s;
       if ((up_wreq_s == 1'b1) && (up_waddr_s == 2'h0)) begin
         up_resetn <= up_wdata_s[0];
+        up_load_config <= up_wdata_s[1];
+      end else begin
+        up_load_config <= 1'b0;
       end
       if ((up_wreq_s == 1'b1) && (up_waddr_s == 2'h1)) begin
         up_pulse_period <= up_wdata_s;
@@ -153,13 +159,21 @@ module axi_pulse_gen #(
 
     sync_data #(
       .NUM_OF_BITS (32),
-      .ASYNC_CLK (1)
-    ) i_pulse_width_sync (
+      .ASYNC_CLK (1))
+    i_pulse_width_sync (
       .in_clk (up_clk),
       .in_data (up_pulse_width),
       .out_clk (clk),
       .out_data (pulse_width_s));
 
+    sync_event #(
+      .NUM_OF_EVENTS (1),
+      .ASYNC_CLK (1))
+    i_load_config_sync (
+      .in_clk (up_clk),
+      .in_event (up_load_config),
+      .out_clk (clk),
+      .out_event (load_config_s));
 
   end else begin : counter_sys_clock        // counter is running on system clk
 
@@ -167,6 +181,7 @@ module axi_pulse_gen #(
     assign resetn_pulse_gen = resetn;
     assign pulse_period_s = up_pulse_period;
     assign pulse_width_s = up_pulse_width;
+    assign load_config_s = up_load_config;
 
   end
   endgenerate
@@ -178,9 +193,8 @@ module axi_pulse_gen #(
     .clk (clk),
     .rstn (resetn_pulse_gen),
     .pulse_width (pulse_width_s),
-    .pulse_width_en (1'b1),
     .pulse_period (pulse_period_s),
-    .pulse_period_en (1'b1),
+    .load_config (load_config_s),
     .pulse (pulse));
 
   up_axi #(
