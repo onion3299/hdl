@@ -32,10 +32,13 @@
 //
 // ***************************************************************************
 // ***************************************************************************
-
 `timescale 1ns/100ps
 
-module axi_pulse_gen(
+module axi_pulse_gen #(
+
+  parameter [0:0] ASYNC_CLK_EN = 1,
+  parameter       PULSE_WIDTH = 7,
+  parameter       PULSE_PERIOD = 10 )(
 
   // axi interface
 
@@ -60,7 +63,7 @@ module axi_pulse_gen(
   output      [ 1:0]      s_axi_rresp,
   output      [31:0]      s_axi_rdata,
   input                   s_axi_rready,
-  input                   clk,
+  input                   ext_clk,
   output                  pulse);
 
   // internal registers
@@ -74,6 +77,7 @@ module axi_pulse_gen(
 
   // internal signals
 
+  wire            clk;
   wire            up_clk;
   wire            up_rstn;
   wire            up_rreq_s;
@@ -108,7 +112,6 @@ module axi_pulse_gen(
     end
   end
 
-
   always @(posedge up_clk) begin
     if (up_rstn == 0) begin
       up_rack <= 'd0;
@@ -134,7 +137,7 @@ module axi_pulse_gen(
     assign clk = ext_clk;
 
     ad_rst i_d_rst_reg (
-      .rst_async (up_resetn),
+      .rst_async (resetn),
       .clk (clk),
       .rstn (resetn_pulse_gen),
       .rst ());
@@ -161,7 +164,7 @@ module axi_pulse_gen(
   end else begin : counter_sys_clock        // counter is running on system clk
 
     assign clk = up_clk;
-    assign resetn_pulse_gen = up_resetn;
+    assign resetn_pulse_gen = resetn;
     assign pulse_period_s = up_pulse_period;
     assign pulse_width_s = up_pulse_width;
 
@@ -169,8 +172,8 @@ module axi_pulse_gen(
   endgenerate
 
   util_pulse_gen  #(
-    .PULSE_WIDTH(7),
-    .PULSE_PERIOD(1000))
+    .PULSE_WIDTH(PULSE_WIDTH),
+    .PULSE_PERIOD(PULSE_PERIOD))
   util_pulse_gen_i(
     .clk (clk),
     .rstn (resetn_pulse_gen),
