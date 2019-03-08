@@ -19,10 +19,20 @@ adi_ip_add_core_dependencies { \
 	analog.com:user:util_cdc:1.0 \
 }
 
-adi_set_ports_dependency "ext_clk" \
-  "(spirit:decode(id('MODELPARAM_VALUE.ASYNC_CLK_EN')) = 1)" 0
 
 set cc [ipx::current_core]
+
+set_property display_name "ADI AXI Pulse Generator" $cc
+set_property description  "ADI AXI Pulse Generator" $cc
+
+## define ext_clk port as a clock interface
+adi_add_bus ext_clk slave \
+  "xilinx.com:signal:clock_rtl:1.0" \
+  "xilinx.com:signal:clock:1.0" \
+  [list {"ext_clk" "CLK"} ]
+
+adi_set_ports_dependency "ext_clk" \
+  "(spirit:decode(id('MODELPARAM_VALUE.ASYNC_CLK_EN')) = 1)" 0
 
 ## Parameter validation
 
