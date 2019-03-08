@@ -39,7 +39,7 @@ module axi_adc_trigger_reg (
 
   input               clk,
 
-  output reg  [ 1:0]  io_selection,
+  output reg  [ 3:0]  io_selection,
   output reg  [ 1:0]  trigger_o,
   input               triggered,
 
@@ -59,7 +59,7 @@ module axi_adc_trigger_reg (
   output      [31:0]  hysteresis_b,
   output      [ 3:0]  trigger_l_mix_b,
 
-  output      [ 2:0]  trigger_out_mix,
+  output      [16:0]  trigger_out_control,
   output      [31:0]  fifo_depth,
   output      [31:0]  trigger_delay,
   output              streaming,
@@ -79,13 +79,13 @@ module axi_adc_trigger_reg (
 
   // internal signals
 
-  wire    [ 9:0]  config_trigger;
+  wire    [ 9:0]  config_i_trigger;
 
   // internal registers
 
   reg     [31:0]  up_version = 32'h00010000;
   reg     [31:0]  up_scratch = 32'h0;
-  reg     [ 9:0]  up_config_trigger = 10'h0;
+  reg     [ 9:0]  up_config_i_trigger = 10'h0;
   reg     [15:0]  up_limit_a = 16'h0;
   reg     [ 1:0]  up_function_a = 2'h0;
   reg     [31:0]  up_hysteresis_a = 32'h0;
@@ -94,17 +94,17 @@ module axi_adc_trigger_reg (
   reg     [ 1:0]  up_function_b = 2'h0;
   reg     [31:0]  up_hysteresis_b = 32'h0;
   reg     [ 3:0]  up_trigger_l_mix_b = 32'h0;
-  reg     [ 2:0]  up_trigger_out_mix = 32'h0;
+  reg     [16:0]  up_trigger_out_control = 32'h0;
   reg     [31:0]  up_fifo_depth = 32'h0;
   reg     [31:0]  up_trigger_delay = 32'h0;
   reg             up_triggered = 1'h0;
   reg             up_streaming = 1'h0;
 
-  assign low_level  = config_trigger[1:0];
-  assign high_level = config_trigger[3:2];
-  assign any_edge   = config_trigger[5:4];
-  assign rise_edge  = config_trigger[7:6];
-  assign fall_edge  = config_trigger[9:8];
+  assign low_level  = config_i_trigger[1:0];
+  assign high_level = config_i_trigger[3:2];
+  assign any_edge   = config_i_trigger[5:4];
+  assign rise_edge  = config_i_trigger[7:6];
+  assign fall_edge  = config_i_trigger[9:8];
 
   always @(negedge up_rstn or posedge up_clk) begin
     if (up_rstn == 0) begin
@@ -112,7 +112,7 @@ module axi_adc_trigger_reg (
       up_scratch <= 'd0;
       io_selection <= 'd3;
       trigger_o <= 'd0;
-      up_config_trigger <= 'd0;
+      up_config_i_trigger <= 'd0;
       up_limit_a <= 'd0;
       up_function_a <= 'd0;
       up_hysteresis_a <= 'd0;
@@ -123,7 +123,7 @@ module axi_adc_trigger_reg (
       up_trigger_delay <= 'd0;
       up_trigger_l_mix_a <= 'd0;
       up_trigger_l_mix_b <= 'd0;
-      up_trigger_out_mix <= 'd0;
+      up_trigger_out_control <= 'd0;
       up_triggered <= 1'd0;
       up_streaming <= 1'd0;
     end else begin
@@ -135,10 +135,10 @@ module axi_adc_trigger_reg (
         trigger_o <= up_wdata[1:0];
       end
       if ((up_wreq == 1'b1) && (up_waddr[4:0] == 5'h3)) begin
-        io_selection <= up_wdata[1:0];
+        io_selection <= up_wdata[3:0];
       end
       if ((up_wreq == 1'b1) && (up_waddr[4:0] == 5'h4)) begin
-        up_config_trigger <= up_wdata[9:0];
+        up_config_i_trigger <= up_wdata[9:0];
       end
       if ((up_wreq == 1'b1) && (up_waddr[4:0] == 5'h5)) begin
         up_limit_a <= up_wdata[15:0];
@@ -165,7 +165,7 @@ module axi_adc_trigger_reg (
         up_trigger_l_mix_b <= up_wdata[3:0];
       end
       if ((up_wreq == 1'b1) && (up_waddr[4:0] == 5'hd)) begin
-        up_trigger_out_mix <= up_wdata[2:0];
+        up_trigger_out_control <= up_wdata[16:0];
       end
       if ((up_wreq == 1'b1) && (up_waddr[4:0] == 5'he)) begin
         up_fifo_depth <= up_wdata;
@@ -197,8 +197,8 @@ module axi_adc_trigger_reg (
           5'h0: up_rdata <= up_version;
           5'h1: up_rdata <= up_scratch;
           5'h2: up_rdata <= {30'h0,trigger_o};
-          5'h3: up_rdata <= {30'h0,io_selection};
-          5'h4: up_rdata <= {22'h0,up_config_trigger};
+          5'h3: up_rdata <= {28'h0,io_selection};
+          5'h4: up_rdata <= {22'h0,up_config_i_trigger};
           5'h5: up_rdata <= {16'h0,up_limit_a};
           5'h6: up_rdata <= {30'h0,up_function_a};
           5'h7: up_rdata <= up_hysteresis_a;
@@ -207,7 +207,7 @@ module axi_adc_trigger_reg (
           5'ha: up_rdata <= {30'h0,up_function_b};
           5'hb: up_rdata <= up_hysteresis_b;
           5'hc: up_rdata <= {28'h0,up_trigger_l_mix_b};
-          5'hd: up_rdata <= {29'h0,up_trigger_out_mix};
+          5'hd: up_rdata <= {15'h0,up_trigger_out_control};
           5'he: up_rdata <= up_fifo_depth;
           5'hf: up_rdata <= {31'h0,up_triggered};
           5'h10: up_rdata <= up_trigger_delay;
@@ -224,7 +224,7 @@ module axi_adc_trigger_reg (
     .up_rstn (up_rstn),
     .up_clk (up_clk),
     .up_data_cntrl ({ up_streaming,         // 1
-                      up_config_trigger,    // 10
+                      up_config_i_trigger,  // 10
                       up_limit_a,           // 16
                       up_function_a,        // 2
                       up_hysteresis_a,      // 32
@@ -233,7 +233,7 @@ module axi_adc_trigger_reg (
                       up_function_b,        // 2
                       up_hysteresis_b,      // 32
                       up_trigger_l_mix_b,   // 4
-                      up_trigger_out_mix,   // 3
+                      up_trigger_out_control,// 17
                       up_fifo_depth,        // 32
                       up_trigger_delay}),   // 32
 
@@ -241,7 +241,7 @@ module axi_adc_trigger_reg (
     .d_rst (1'b0),
     .d_clk (clk),
     .d_data_cntrl ({  streaming,          // 1
-                      config_trigger,     // 10
+                      config_i_trigger,   // 10
                       limit_a,            // 16
                       function_a,         // 2
                       hysteresis_a,       // 32
@@ -250,7 +250,7 @@ module axi_adc_trigger_reg (
                       function_b,         // 2
                       hysteresis_b,       // 32
                       trigger_l_mix_b,    // 4
-                      trigger_out_mix,    // 3
+                      trigger_out_control,// 17
                       fifo_depth,         // 32
                       trigger_delay}));   // 32
 
