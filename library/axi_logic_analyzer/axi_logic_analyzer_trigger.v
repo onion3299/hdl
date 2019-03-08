@@ -43,6 +43,7 @@ module axi_logic_analyzer_trigger (
   input       [15:0]    data,
   input                 data_valid,
   input       [ 1:0]    trigger,
+  input                 cascaded_trigger,
 
   input       [17:0]    edge_detect_enable,
   input       [17:0]    rise_edge_enable,
@@ -50,7 +51,7 @@ module axi_logic_analyzer_trigger (
   input       [17:0]    low_level_enable,
   input       [17:0]    high_level_enable,
 
-  input                 trigger_logic,
+  input       [ 6:0]    trigger_logic,
 
   output  reg           trigger_out);
 
@@ -60,15 +61,15 @@ module axi_logic_analyzer_trigger (
   reg     [ 17:0]   edge_detect = 'd0;
   reg     [ 17:0]   rise_edge = 'd0;
   reg     [ 17:0]   fall_edge = 'd0;
-  reg     [ 31:0]   delay_count = 'd0;
 
   reg              trigger_active;
+  reg              trigger_active_mux;
   reg              trigger_active_d1;
   reg              trigger_active_d2;
 
   always @(posedge clk) begin
     if (data_valid == 1'b1) begin
-      trigger_active_d1 <= trigger_active;
+      trigger_active_d1 <= trigger_active_mux;
       trigger_active_d2 <= trigger_active_d1;
       trigger_out <= trigger_active_d2;
     end
@@ -79,7 +80,7 @@ module axi_logic_analyzer_trigger (
   // 1 AND
 
   always @(*) begin
-    case (trigger_logic)
+    case (trigger_logic[0])
       0: trigger_active = |((edge_detect & edge_detect_enable) |
                             (rise_edge & rise_edge_enable) |
                             (fall_edge & fall_edge_enable) |
@@ -93,6 +94,18 @@ module axi_logic_analyzer_trigger (
       default: trigger_active = 1'b1;
     endcase
   end
+
+  always @(*) begin
+    case (trigger_logic[6:4])
+      3'd0: trigger_active_mux = trigger_active;
+      3'd1: trigger_active_mux = cascaded_trigger;
+      3'd2: trigger_active_mux = trigger_active & cascaded_trigger;
+      3'd3: trigger_active_mux = trigger_active | cascaded_trigger;
+      3'd4: trigger_active_mux = trigger_active ^ cascaded_trigger;
+      default: trigger_active_mux = 1'b1;
+    endcase
+  end
+
 
   // internal signals
 

@@ -52,6 +52,7 @@ module axi_logic_analyzer (
   input                 dac_valid,
   output reg            dac_read,
 
+  input                 cascaded_trigger,
   output                trigger_out,
   output      [31:0]    fifo_depth,
 
@@ -131,7 +132,7 @@ module axi_logic_analyzer (
   wire    [17:0]    fall_edge_enable;
   wire    [17:0]    low_level_enable;
   wire    [17:0]    high_level_enable;
-  wire              trigger_logic; // 0-OR,1-AND,2-XOR,3-NOR,4-NAND,5-NXOR
+  wire    [ 6:0]    trigger_logic; // 0-OR,1-AND
   wire              clock_select;
   wire    [15:0]    overwrite_enable;
   wire    [15:0]    overwrite_data;
@@ -298,6 +299,7 @@ module axi_logic_analyzer (
     .data (adc_data_m2),
     .data_valid(sample_valid_la),
     .trigger (trigger_m2),
+    .cascaded_trigger (cascaded_trigger),
 
     .edge_detect_enable (edge_detect_enable),
     .rise_edge_enable (rise_edge_enable),
