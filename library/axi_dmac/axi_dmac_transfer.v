@@ -355,7 +355,7 @@ axi_dmac_framelock #(
   );
 
 assign flock_req_ready = transfer_2d_req_ready && ext_sync_ready;
-assign ext_sync_valid = flock_req_valid;
+assign ext_sync_valid = flock_req_valid || ~transfer_2d_req_ready;
 
 dmac_2d_transfer #(
   .DMA_2D_TRANSFER (DMA_2D_TRANSFER),
