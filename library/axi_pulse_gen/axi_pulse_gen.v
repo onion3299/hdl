@@ -74,7 +74,7 @@ module axi_pulse_gen #(
   reg     [31:0]  up_pulse_width = 'd0;
   reg     [31:0]  up_pulse_period = 'd0;
   reg             up_load_config = 1'b0;
-  reg             up_resetn;
+  reg             up_reset;
 
   // internal signals
 
@@ -100,11 +100,11 @@ module axi_pulse_gen #(
       up_pulse_period <= 'd0;
       up_pulse_width <= 'd0;
       up_load_config <= 1'b0;
-      up_resetn <= 1'b1;
+      up_reset <= 1'b1;
     end else begin
       up_wack <= up_wreq_s;
       if ((up_wreq_s == 1'b1) && (up_waddr_s == 2'h0)) begin
-        up_resetn <= up_wdata_s[0];
+        up_reset <= up_wdata_s[0];
         up_load_config <= up_wdata_s[1];
       end else begin
         up_load_config <= 1'b0;
@@ -126,7 +126,7 @@ module axi_pulse_gen #(
       up_rack <= up_rreq_s;
       if (up_rreq_s == 1'b1) begin
         case (up_raddr_s)
-          2'h0: up_rdata <= up_resetn;
+          2'h0: up_rdata <= up_reset;
           2'h1: up_rdata <= up_pulse_period;
           2'h2: up_rdata <= up_pulse_width;
           default: up_rdata <= 0;
@@ -143,7 +143,7 @@ module axi_pulse_gen #(
     assign clk = ext_clk;
 
     ad_rst i_d_rst_reg (
-      .rst_async (up_resetn),
+      .rst_async (up_reset),
       .clk (clk),
       .rstn (resetn_pulse_gen),
       .rst ());
@@ -178,7 +178,7 @@ module axi_pulse_gen #(
   end else begin : counter_sys_clock        // counter is running on system clk
 
     assign clk = up_clk;
-    assign resetn_pulse_gen = up_resetn;
+    assign resetn_pulse_gen = ~up_reset;
     assign pulse_period_s = up_pulse_period;
     assign pulse_width_s = up_pulse_width;
     assign load_config_s = up_load_config;
