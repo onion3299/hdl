@@ -91,6 +91,10 @@ module axi_dmac_framelock #(
   input out_response_valid,
   output out_response_ready,
 
+  // Interface to external sync
+  input ext_sync_ready,
+  output ext_sync_valid,
+
   // Frame lock interface
   // Master mode
   input  [MAX_NUM_FRAMES_MSB:0] m_frame_in,
@@ -118,6 +122,10 @@ assign out_req_src_stride = req_src_stride;
 assign out_req_sync_transfer_start = req_sync_transfer_start;
 assign out_req_last = req_last;
 
+// External sync handling
+wire enable_out_req;
+assign out_req_ready_loc = out_req_ready && ext_sync_ready && enable_out_req;
+assign ext_sync_valid = out_req_valid || ~out_req_ready || ~enable_out_req;
 
 generate if (ENABLE_FRAME_LOCK == 1) begin
 
@@ -136,7 +144,6 @@ generate if (ENABLE_FRAME_LOCK == 1) begin
   reg wait_distance = 1'b0;
   wire calc_enable;
   wire calc_done;
-  wire enable_out_req;
 
   reg prev_buf_done;
 
@@ -144,14 +151,14 @@ generate if (ENABLE_FRAME_LOCK == 1) begin
   always @(posedge req_aclk) begin
     if (req_aresetn == 1'b0) begin
       prev_buf_done <= 1'b1;
-    end else if (out_req_valid & out_req_ready) begin
+    end else if (out_req_valid & out_req_ready_loc) begin
       prev_buf_done <= 1'b0;
     end else if (resp_eot) begin
       prev_buf_done <= 1'b1;
     end
   end
 
-  assign calc_enable = ~req_ready & out_req_ready & enable_out_req & prev_buf_done;
+  assign calc_enable = ~req_ready & out_req_ready_loc & enable_out_req & prev_buf_done;
   assign transfer_id_p1 = transfer_id + 1'b1;
 
   always @(posedge req_aclk) begin
@@ -175,7 +182,7 @@ generate if (ENABLE_FRAME_LOCK == 1) begin
   // Keep a history of the transfer IDs so they can be passed to the slave
   // once they are completed
   always @(posedge req_aclk) begin
-    if (out_req_valid & out_req_ready) begin
+    if (out_req_valid & out_req_ready_loc) begin
       cur_frame_id <= transfer_id;
     end
   end
@@ -189,7 +196,7 @@ generate if (ENABLE_FRAME_LOCK == 1) begin
       req_ready <= 1'b1;
     end else if (req_ready == 1'b1) begin
       req_ready <= ~req_valid;
-    end else if (out_req_valid & out_req_ready) begin
+    end else if (out_req_valid & out_req_ready_loc) begin
       req_ready <= ~req_cyclic;
     end
   end
@@ -295,7 +302,7 @@ generate if (ENABLE_FRAME_LOCK == 1) begin
 end else begin
   always @(*) begin
     out_req_valid = req_valid;
-    req_ready = out_req_ready;
+    req_ready = out_req_ready_loc;
   end
 
   assign out_req_dest_address = req_dest_address;
@@ -303,6 +310,9 @@ end else begin
 
   assign m_frame_out = 'h0;
   assign s_frame_out = 'h0;
+
+  assign enable_out_req = 1'b1;
+
 end
 endgenerate
 

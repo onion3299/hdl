@@ -253,7 +253,7 @@ wire req_ready_gated;
 
 wire abort_req;
 
-wire transfer_2d_req_ready;
+wire ext_sync_valid;
 wire ext_sync_ready;
 
 axi_dmac_reset_manager #(
@@ -352,14 +352,16 @@ axi_dmac_framelock #(
   .out_response_valid (flock_response_valid),
   .out_response_ready (flock_response_ready),
 
+  // Interface to external sync
+  .ext_sync_ready(ext_sync_ready),
+  .ext_sync_valid(ext_sync_valid),
+
   .m_frame_in (m_frame_in),
   .m_frame_out (m_frame_out),
   .s_frame_in (s_frame_in),
   .s_frame_out (s_frame_out)
   );
 
-assign flock_req_ready = transfer_2d_req_ready && ext_sync_ready;
-assign ext_sync_valid = flock_req_valid || ~transfer_2d_req_ready;
 
 dmac_2d_transfer #(
   .DMA_2D_TRANSFER (DMA_2D_TRANSFER),
@@ -380,7 +382,7 @@ dmac_2d_transfer #(
   .req_response_ready (flock_response_ready),
 
   .req_valid (flock_req_valid),
-  .req_ready (transfer_2d_req_ready),
+  .req_ready (flock_req_ready),
   .req_dest_address (flock_req_dest_address),
   .req_src_address (flock_req_src_address),
   .req_x_length (flock_req_x_length),
