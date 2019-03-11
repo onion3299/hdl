@@ -36,6 +36,7 @@
 
 module axi_pulse_gen #(
 
+  parameter       ID = 0,
   parameter [0:0] ASYNC_CLK_EN = 1,
   parameter       PULSE_WIDTH = 7,
   parameter       PULSE_PERIOD = 10 )(
@@ -66,11 +67,19 @@ module axi_pulse_gen #(
   input                   ext_clk,
   output                  pulse);
 
+  // local parameters
+
+  localparam [31:0] CORE_VERSION = {16'h0000, /* MAJOR */
+                                     8'h01,   /* MINOR */
+                                     8'h00};  /* PATCH */ // 0.01.0
+  localparam [31:0] CORE_MAGIC = 32'h504c5347;    // PLSG
+
   // internal registers
 
   reg             up_wack = 'd0;
   reg     [31:0]  up_rdata = 'd0;
   reg             up_rack = 'd0;
+  reg     [31:0]  up_scratch = 'd0;
   reg     [31:0]  up_pulse_width = 'd0;
   reg     [31:0]  up_pulse_period = 'd0;
   reg             up_load_config = 1'b0;
@@ -82,9 +91,9 @@ module axi_pulse_gen #(
   wire            up_clk;
   wire            up_rstn;
   wire            up_rreq_s;
-  wire    [ 1:0]  up_raddr_s;
+  wire    [ 2:0]  up_raddr_s;
   wire            up_wreq_s;
-  wire    [ 1:0]  up_waddr_s;
+  wire    [ 2:0]  up_waddr_s;
   wire    [31:0]  up_wdata_s;
   wire    [31:0]  pulse_width_s;
   wire    [31:0]  pulse_period_s;
@@ -97,22 +106,26 @@ module axi_pulse_gen #(
   always @(posedge up_clk) begin
     if (up_rstn == 0) begin
       up_wack <= 'd0;
+      up_scratch <= 'd0;
       up_pulse_period <= PULSE_PERIOD;
       up_pulse_width <= PULSE_WIDTH;
       up_load_config <= 1'b0;
       up_reset <= 1'b1;
     end else begin
       up_wack <= up_wreq_s;
-      if ((up_wreq_s == 1'b1) && (up_waddr_s == 2'h0)) begin
+      if ((up_wreq_s == 1'b1) && (up_waddr_s == 3'h2)) begin
+        up_scratch <= up_wdata_s;
+      end
+      if ((up_wreq_s == 1'b1) && (up_waddr_s == 3'h4)) begin
         up_reset <= up_wdata_s[0];
         up_load_config <= up_wdata_s[1];
       end else begin
         up_load_config <= 1'b0;
       end
-      if ((up_wreq_s == 1'b1) && (up_waddr_s == 2'h1)) begin
+      if ((up_wreq_s == 1'b1) && (up_waddr_s == 3'h5)) begin
         up_pulse_period <= up_wdata_s;
       end
-      if ((up_wreq_s == 1'b1) && (up_waddr_s == 2'h2)) begin
+      if ((up_wreq_s == 1'b1) && (up_waddr_s == 3'h6)) begin
         up_pulse_width <= up_wdata_s;
       end
     end
@@ -126,9 +139,13 @@ module axi_pulse_gen #(
       up_rack <= up_rreq_s;
       if (up_rreq_s == 1'b1) begin
         case (up_raddr_s)
-          2'h0: up_rdata <= up_reset;
-          2'h1: up_rdata <= up_pulse_period;
-          2'h2: up_rdata <= up_pulse_width;
+          3'h0: up_rdata <= CORE_VERSION;
+          3'h1: up_rdata <= ID;
+          3'h2: up_rdata <= up_scratch;
+          3'h3: up_rdata <= CORE_MAGIC;
+          3'h4: up_rdata <= up_reset;
+          3'h5: up_rdata <= up_pulse_period;
+          3'h6: up_rdata <= up_pulse_width;
           default: up_rdata <= 0;
         endcase
       end else begin
@@ -198,7 +215,7 @@ module axi_pulse_gen #(
     .pulse (pulse));
 
   up_axi #(
-    .ADDRESS_WIDTH(2))
+    .ADDRESS_WIDTH(3))
   i_up_axi (
     .up_rstn (up_rstn),
     .up_clk (up_clk),
