@@ -58,6 +58,8 @@ module axi_dmac_framelock #(
   input [DMA_LENGTH_WIDTH-1:0] req_dest_stride,
   input [DMA_LENGTH_WIDTH-1:0] req_src_stride,
   input [MAX_NUM_FRAMES_WIDTH:0] req_flock_framenum,
+  input                          req_flock_mode,  // 0 - Dynamic. 1 - Static
+  input                          req_flock_wait_master,
   input [MAX_NUM_FRAMES_WIDTH:0] req_flock_distance,
   input [DMA_AXI_ADDR_WIDTH-1:0] req_flock_stride,
   input req_flock_en,
@@ -219,7 +221,8 @@ generate if (ENABLE_FRAME_LOCK == 1) begin
     assign s_frame_id_vld = m_frame_in[MAX_NUM_FRAMES_WIDTH];
 
     assign calc_done = s_frame_id != transfer_id ||
-                       slave_started == 1'b0;
+                       slave_started == 1'b0 ||
+                       req_flock_mode == 1'b1;
 
     always @(posedge req_aclk) begin
       if (req_aresetn == 1'b0) begin
@@ -271,6 +274,8 @@ generate if (ENABLE_FRAME_LOCK == 1) begin
 
     // Keep a log of frame ids the master wrote
     //
+    wire [MAX_NUM_FRAMES_WIDTH:0] req_flock_framenum_m1;
+    assign  req_flock_framenum_m1 = req_flock_framenum - 1;
     genvar k;
     for (k=0;k<MAX_NUM_FRAMES_WIDTH;k=k+1) begin : frame_id_log
       reg [MAX_NUM_FRAMES-1 : 0] s_frame_id_log;
@@ -279,10 +284,10 @@ generate if (ENABLE_FRAME_LOCK == 1) begin
           s_frame_id_log <= {s_frame_id_log[MAX_NUM_FRAMES-2 : 0], m_frame_id[k]};
         end
       end
-      assign target_id[k] = s_frame_id_log[req_flock_distance];
+      assign target_id[k] = wait_distance ? req_flock_framenum_m1[k] : s_frame_id_log[req_flock_distance];
     end
 
-    assign enable_out_req = ~wait_distance;
+    assign enable_out_req = req_flock_wait_master ? ~wait_distance : 1'b1;
 
   end
 
