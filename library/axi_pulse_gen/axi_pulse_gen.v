@@ -97,8 +97,8 @@ module axi_pulse_gen #(
   always @(posedge up_clk) begin
     if (up_rstn == 0) begin
       up_wack <= 'd0;
-      up_pulse_period <= 'd0;
-      up_pulse_width <= 'd0;
+      up_pulse_period <= PULSE_PERIOD;
+      up_pulse_width <= PULSE_WIDTH;
       up_load_config <= 1'b0;
       up_reset <= 1'b1;
     end else begin
